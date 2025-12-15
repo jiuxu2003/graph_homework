@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "name": "批量实验配置",
+    "description": "用于批量运行多个实验配置的示例",
+    "version": "1.0"
+  },
+  "batch_config": {
+    "output_dir": "results/batch/",
+    "generate_reports": true,
+    "generate_visualizations": true
+  },
+  "experiments": [
+    {
+      "name": "小规模实验_3x3",
+      "config_file": "configs/examples/simple_3x3.json"
+    },
+    {
+      "name": "中等规模实验_10x8",
+      "config_file": "configs/examples/medium_10x8.json"
+    }
+  ],
+  "parametric_experiments": {
+    "enabled": true,
+    "base_config": {
+      "metadata": {
+        "name": "参数化实验",
+        "description": "测试不同网络规模的性能"
+      },
+      "network": {
+        "num_secondary_users": 5,
+        "num_channels": 5,
+        "availability_matrix": [
+          [1, 1, 0, 0, 1],
+          [1, 0, 1, 0, 0],
+          [0, 1, 1, 1, 0],
+          [0, 0, 1, 1, 1],
+          [1, 0, 0, 1, 1]
+        ]
+      },
+      "primary_users": {
+        "occupied_channels": []
+      },
+      "interference": {
+        "adjacency_matrix": [
+          [0, 1, 0, 0, 1],
+          [1, 0, 1, 0, 0],
+          [0, 1, 0, 1, 0],
+          [0, 0, 1, 0, 1],
+          [1, 0, 0, 1, 0]
+        ]
+      },
+      "constraints": {
+        "enable_availability": true,
+        "enable_single_transceiver": true,
+        "enable_interference_avoidance": true
+      }
+    },
+    "variations": [
+      {
+        "name": "无主用户占用",
+        "primary_users": {
+          "occupied_channels": []
+        }
+      },
+      {
+        "name": "主用户占用1个信道",
+        "primary_users": {
+          "occupied_channels": [0]
+        }
+      },
+      {
+        "name": "主用户占用2个信道",
+        "primary_users": {
+          "occupied_channels": [0, 2]
+        }
+      },
+      {
+        "name": "禁用干扰避免约束",
+        "constraints": {
+          "enable_interference_avoidance": false
+        }
+      },
+      {
+        "name": "仅可用性约束",
+        "constraints": {
+          "enable_availability": true,
+          "enable_single_transceiver": false,
+          "enable_interference_avoidance": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "name": "简单3x3案例",
+    "description": "3个次级用户，3个频谱信道"
+  },
+  "network": {
+    "num_secondary_users": 3,
+    "num_channels": 3,
+    "availability_matrix": [
+      [1, 0, 1],
+      [1, 1, 0],
+      [0, 1, 1]
+    ]
+  },
+  "primary_users": {
+    "occupied_channels": []
+  },
+  "interference": {
+    "adjacency_matrix": [
+      [0, 1, 0],
+      [1, 0, 1],
+      [0, 1, 0]
+    ]
+  },
+  "constraints": {
+    "enable_availability": true,
+    "enable_single_transceiver": true,
+    "enable_interference_avoidance": true
+  },
+  "output": {
+    "save_results": true,
+    "output_dir": "results/",
+    "generate_visualization": true
+  }
+}

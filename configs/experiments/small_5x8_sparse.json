@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "小规模-稀疏场景(5×8)",
+    "description": "5用户8信道，稀疏可用性，展示低利用率"
+  },
+  "network": {
+    "num_secondary_users": 5,
+    "num_channels": 8,
+    "availability_matrix": [
+      [1, 1, 0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0, 0, 0],
+      [0, 0, 1, 1, 0, 0, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 0],
+      [0, 0, 0, 0, 1, 1, 0, 0]
+    ]
+  },
+  "primary_users": {
+    "occupied_channels": [1, 4]
+  },
+  "interference": {
+    "adjacency_matrix": [
+      [0, 1, 0, 0, 0],
+      [1, 0, 1, 0, 0],
+      [0, 1, 0, 1, 0],
+      [0, 0, 1, 0, 1],
+      [0, 0, 0, 1, 0]
+    ]
+  },
+  "constraints": {
+    "enable_availability": true,
+    "enable_single_transceiver": true,
+    "enable_interference_avoidance": false
+  },
+  "output": {
+    "save_results": true,
+    "output_dir": "results/scale_comparison/",
+    "generate_visualization": false
+  }
+}
