@@ -178,8 +178,8 @@ class ExperimentController:
             Dict[str, Any]: 实验结果
         """
         import time
-        from src.io.config_loader import ConfigLoader
-        from src.algorithm.matcher import Matcher
+        from io.config_loader import ConfigLoader
+        from algorithm.matcher import Matcher
 
         start_time = time.time()
 
