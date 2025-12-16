@@ -177,28 +177,42 @@ class ExperimentController:
         Returns:
             Dict[str, Any]: 实验结果
         """
-        # TODO: 这里需要调用实际的src.algorithm.Matcher
-        # 目前返回模拟结果
         import time
-        time.sleep(0.5)  # 模拟计算时间
+        from ...io.config_loader import ConfigLoader
+        from ...algorithm.matcher import Matcher
 
-        # 模拟结果
-        num_users = config.get('network_topology', {}).get('num_users', 0)
-        num_channels = config.get('network_topology', {}).get('num_channels', 0)
-        num_matches = min(num_users, num_channels)
+        start_time = time.time()
 
-        result = {
-            'num_matches': num_matches,
-            'matching_pairs': [(i, i) for i in range(num_matches)],
-            'spectrum_utilization': num_matches / max(num_channels, 1),
-            'execution_time': 0.5,
-            'constraints_satisfied': True,
-            'matched_users': list(range(num_matches)),
-            'matched_channels': list(range(num_matches)),
-            'unmatched_users': list(range(num_matches, num_users))
-        }
+        try:
+            # 解析配置
+            topology = ConfigLoader.parse_network_topology(config)
+            constraints = ConfigLoader.parse_constraints(config)
 
-        return result
+            # 创建匹配器并运行
+            matcher = Matcher(topology, constraints)
+            matching = matcher.run()
+
+            # 计算执行时间
+            execution_time = time.time() - start_time
+
+            # 构建结果字典（兼容GUI格式）
+            result = {
+                'num_matches': len(matching),
+                'matching': matching,  # 匹配对列表 [(user, channel), ...]
+                'spectrum_utilization': len(matching) / len(topology.channels) if topology.channels else 0,
+                'execution_time': execution_time,
+                'constraints_satisfied': True,  # Matcher只返回满足约束的匹配
+                'matched_users': [pair[0] for pair in matching],
+                'matched_channels': [pair[1] for pair in matching],
+                'num_users': len(topology.secondary_users),
+                'num_channels': len(topology.channels)
+            }
+
+            return result
+
+        except Exception as e:
+            # 记录错误并重新抛出
+            raise RuntimeError(f"算法运行失败: {e}") from e
 
     def _handle_task_result(self):
         """处理后台任务结果"""
