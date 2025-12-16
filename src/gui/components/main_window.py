@@ -269,15 +269,19 @@ class MainWindow:
                 # 继续轮询
                 self.root.after(100, self._poll_experiment_status)
             elif status["status"] == "completed":
-                # 实验完成，回调会自动处理
-                pass
+                # 获取结果并触发回调
+                if "result" in status:
+                    self._on_experiment_complete(status["result"])
             elif status["status"] == "failed":
-                # 实验失败，回调会自动处理
-                pass
+                # 触发错误回调
+                if "error" in status:
+                    self._on_experiment_error(status["error"])
 
         except KeyError:
             # 任务不存在，可能已完成
             pass
+        except Exception as e:
+            self._on_experiment_error(e)
 
     def _on_experiment_complete(self, result: dict):
         """实验完成回调"""
