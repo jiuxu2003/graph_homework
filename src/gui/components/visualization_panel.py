@@ -244,31 +244,32 @@ class VisualizationPanel:
         # 创建子图
         ax = fig.add_subplot(111)
 
-        utilization = result.get("spectrum_utilization", 0) * 100
-        target = 100
+        # 获取两个利用率指标
+        available_utilization = result.get("spectrum_utilization", 0) * 100
+        total_utilization = result.get("total_spectrum_utilization", 0) * 100
+        num_primary = result.get("num_primary_occupied_channels", 0)
 
-        categories = ['频谱利用率', '剩余空间']
-        values = [utilization, target - utilization]
-        colors = ['#4CAF50', '#E0E0E0']
+        # 创建数据
+        categories = ['可用频谱利用率', '总体频谱利用率']
+        values = [available_utilization, total_utilization]
+        colors = ['#4CAF50', '#2196F3']
 
         bars = ax.barh(categories, values, color=colors)
 
-        # 添加数值标签（避免重叠）
+        # 添加数值标签
         for i, bar in enumerate(bars):
             width = bar.get_width()
-            # 如果值太小（< 5%），不显示标签或显示在右侧
+            # 如果值太小（< 5%），标签显示在右侧
             if width < 5:
-                # 值太小时，标签显示在bar右侧
                 ax.text(width + 2, bar.get_y() + bar.get_height() / 2,
                        f'{width:.1f}%', ha='left', va='center', fontsize=10, color='gray')
             else:
-                # 正常显示在bar中心
                 ax.text(width / 2, bar.get_y() + bar.get_height() / 2,
-                       f'{width:.1f}%', ha='center', va='center', fontsize=12, fontweight='bold')
+                       f'{width:.1f}%', ha='center', va='center', fontsize=12, fontweight='bold', color='white')
 
-        ax.set_xlim(0, target + 10)  # 增加右侧空间以容纳小值标签
+        ax.set_xlim(0, 110)  # 增加右侧空间
         ax.set_xlabel('百分比 (%)')
-        ax.set_title(f'频谱利用率: {utilization:.2f}%')
+        ax.set_title(f'频谱利用率对比 (主用户占用: {num_primary} 个信道)')
 
         fig.tight_layout()
 
@@ -285,26 +286,28 @@ class VisualizationPanel:
         # 收集指标
         metrics = {
             '匹配数量': result.get('num_matches', 0),
-            '频谱利用率(%)': result.get('spectrum_utilization', 0) * 100,
-            '执行时间(秒)': result.get('execution_time', 0),
+            '可用频谱\n利用率(%)': result.get('spectrum_utilization', 0) * 100,
+            '总体频谱\n利用率(%)': result.get('total_spectrum_utilization', 0) * 100,
+            '主用户\n占用信道': result.get('num_primary_occupied_channels', 0),
+            '执行时间\n(秒)': result.get('execution_time', 0),
         }
 
         categories = list(metrics.keys())
         values = list(metrics.values())
 
-        bars = ax.bar(categories, values, color=['#2196F3', '#4CAF50', '#FF9800'])
+        bars = ax.bar(categories, values, color=['#2196F3', '#4CAF50', '#9C27B0', '#FF5722', '#FF9800'])
 
         # 添加数值标签
         for bar in bars:
             height = bar.get_height()
             ax.text(bar.get_x() + bar.get_width() / 2, height,
-                   f'{height:.2f}', ha='center', va='bottom', fontsize=10)
+                   f'{height:.2f}', ha='center', va='bottom', fontsize=9)
 
         ax.set_ylabel('数值')
         ax.set_title('实验结果汇总')
 
         # 旋转x轴标签
-        ax.set_xticklabels(categories, rotation=15, ha='right')
+        ax.set_xticklabels(categories, rotation=0, ha='center', fontsize=9)
 
         fig.tight_layout()
 

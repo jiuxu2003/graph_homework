@@ -53,7 +53,9 @@ class ResultsPanel:
 
         metrics = [
             ("num_matches", "匹配数量"),
-            ("spectrum_utilization", "频谱利用率"),
+            ("spectrum_utilization", "可用频谱利用率"),
+            ("total_spectrum_utilization", "总体频谱利用率"),
+            ("num_primary_occupied_channels", "主用户占用信道数"),
             ("execution_time", "执行时间（秒）"),
             ("constraints_satisfied", "约束满足")
         ]
@@ -144,6 +146,8 @@ class ResultsPanel:
         metrics_format = {
             "num_matches": lambda x: str(x),
             "spectrum_utilization": lambda x: f"{x:.2%}",
+            "total_spectrum_utilization": lambda x: f"{x:.2%}",
+            "num_primary_occupied_channels": lambda x: str(x),
             "execution_time": lambda x: f"{x:.3f}",
             "constraints_satisfied": lambda x: "是" if x else "否"
         }
@@ -189,7 +193,9 @@ class ResultsPanel:
         # 汇总信息
         lines.append("【汇总信息】")
         lines.append(f"  匹配数量: {result.get('num_matches', 'N/A')}")
-        lines.append(f"  频谱利用率: {result.get('spectrum_utilization', 0):.2%}")
+        lines.append(f"  可用频谱利用率: {result.get('spectrum_utilization', 0):.2%}")
+        lines.append(f"  总体频谱利用率: {result.get('total_spectrum_utilization', 0):.2%}")
+        lines.append(f"  主用户占用信道数: {result.get('num_primary_occupied_channels', 0)}")
         lines.append(f"  执行时间: {result.get('execution_time', 0):.3f} 秒")
         lines.append(f"  约束满足: {'是' if result.get('constraints_satisfied', False) else '否'}")
         lines.append("")
@@ -227,7 +233,8 @@ class ResultsPanel:
         # 其他信息
         lines.append("【其他信息】")
         for key, value in result.items():
-            if key not in ["num_matches", "spectrum_utilization", "execution_time",
+            if key not in ["num_matches", "spectrum_utilization", "total_spectrum_utilization",
+                          "num_primary_occupied_channels", "execution_time",
                           "constraints_satisfied", "matching", "statistics"]:
                 lines.append(f"  {key}: {value}")
 

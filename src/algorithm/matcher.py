@@ -57,6 +57,13 @@ class Matcher:
         available_channels = sum(1 for ch in self.topology.channels if ch.is_available)
         spectrum_utilization = num_matches / available_channels if available_channels > 0 else 0
 
+        # 计算总体频谱利用率
+        total_channels = len(self.topology.channels)
+        total_spectrum_utilization = num_matches / total_channels if total_channels > 0 else 0
+
+        # 统计主用户占用的信道数
+        num_primary_occupied_channels = sum(1 for ch in self.topology.channels if not ch.is_available)
+
         # 计算执行时间
         execution_time = time.time() - start_time
 
@@ -71,7 +78,9 @@ class Matcher:
             unmatched_users=unmatched_users,
             spectrum_utilization=spectrum_utilization,
             execution_time=execution_time,
-            constraints_satisfied=constraints_satisfied
+            constraints_satisfied=constraints_satisfied,
+            total_spectrum_utilization=total_spectrum_utilization,
+            num_primary_occupied_channels=num_primary_occupied_channels
         )
 
     def _apply_constraints(self) -> np.ndarray:

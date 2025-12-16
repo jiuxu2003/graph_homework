@@ -32,9 +32,11 @@ class MatchingResult:
     matched_users: Set[int]
     matched_channels: Set[int]
     unmatched_users: Set[int]
-    spectrum_utilization: float
+    spectrum_utilization: float  # 可用频谱利用率（向后兼容）
     execution_time: float
     constraints_satisfied: bool = True
+    total_spectrum_utilization: float = 0.0  # 总体频谱利用率
+    num_primary_occupied_channels: int = 0  # 主用户占用的信道数
 
     def __post_init__(self):
         """初始化后验证"""
@@ -42,7 +44,9 @@ class MatchingResult:
         assert self.num_matches == len(self.matched_users), "匹配数与已匹配用户数不一致"
         assert self.num_matches == len(self.matched_channels), "匹配数与已匹配信道数不一致"
         assert 0 <= self.spectrum_utilization <= 1, "频谱利用率必须在[0, 1]范围内"
+        assert 0 <= self.total_spectrum_utilization <= 1, "总体频谱利用率必须在[0, 1]范围内"
         assert self.execution_time >= 0, "执行时间必须非负"
+        assert self.num_primary_occupied_channels >= 0, "主用户占用信道数必须非负"
 
     def to_dict(self) -> Dict:
         """转换为字典格式（用于JSON导出）"""
@@ -56,6 +60,8 @@ class MatchingResult:
             'matched_channels': list(self.matched_channels),
             'unmatched_users': list(self.unmatched_users),
             'spectrum_utilization': self.spectrum_utilization,
+            'total_spectrum_utilization': self.total_spectrum_utilization,
+            'num_primary_occupied_channels': self.num_primary_occupied_channels,
             'execution_time': self.execution_time,
             'constraints_satisfied': self.constraints_satisfied
         }
