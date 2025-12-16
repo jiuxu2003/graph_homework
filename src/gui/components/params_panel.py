@@ -137,7 +137,8 @@ class ParamsPanel:
                 "num_users",
                 num_users,
                 "int",
-                row
+                row,
+                readonly=True  # 不允许修改，因为涉及矩阵维度
             )
 
             row = self._create_param_field(
@@ -146,7 +147,8 @@ class ParamsPanel:
                 "num_channels",
                 network.get("num_channels", 0),
                 "int",
-                row
+                row,
+                readonly=True  # 不允许修改，因为涉及矩阵维度
             )
 
             row += 1
@@ -247,7 +249,8 @@ class ParamsPanel:
         key: str,
         value: Any,
         param_type: str,
-        row: int
+        row: int,
+        readonly: bool = False
     ) -> int:
         """
         创建参数输入字段
@@ -259,12 +262,14 @@ class ParamsPanel:
             value: 参数值
             param_type: 参数类型 (int/float/str/bool)
             row: 行号
+            readonly: 是否只读
 
         Returns:
             下一行号
         """
         # 标签
-        label_widget = ttk.Label(parent, text=f"{label}:")
+        label_text = f"{label}:" if not readonly else f"{label} (只读):"
+        label_widget = ttk.Label(parent, text=label_text)
         label_widget.grid(row=row, column=0, sticky=tk.W, padx=(10, 5), pady=5)
 
         # 根据类型创建不同的输入控件
@@ -272,23 +277,29 @@ class ParamsPanel:
             # 布尔类型使用复选框
             var = tk.BooleanVar(value=bool(value))
             checkbox = ttk.Checkbutton(parent, variable=var)
+            if readonly:
+                checkbox.config(state=tk.DISABLED)
             checkbox.grid(row=row, column=1, sticky=tk.W, pady=5)
 
             self.param_widgets[key] = {
                 "var": var,
                 "type": param_type,
-                "original": value
+                "original": value,
+                "readonly": readonly
             }
         else:
             # 其他类型使用输入框
             entry_var = tk.StringVar(value=str(value))
             entry = ttk.Entry(parent, textvariable=entry_var, width=20)
+            if readonly:
+                entry.config(state="readonly")
             entry.grid(row=row, column=1, sticky=tk.W, pady=5)
 
             self.param_widgets[key] = {
                 "var": entry_var,
                 "type": param_type,
-                "original": value
+                "original": value,
+                "readonly": readonly
             }
 
         return row + 1
@@ -315,11 +326,16 @@ class ParamsPanel:
         if not self.state.current_config:
             raise ValueError("未加载配置")
 
-        # 复制原始配置
-        config = self.state.current_config.copy()
+        # 深拷贝原始配置
+        import copy
+        config = copy.deepcopy(self.state.current_config)
 
-        # 更新参数
+        # 更新参数（跳过只读参数）
         for key, widget_info in self.param_widgets.items():
+            # 跳过只读参数
+            if widget_info.get("readonly", False):
+                continue
+
             try:
                 param_type = widget_info["type"]
 
@@ -335,7 +351,7 @@ class ParamsPanel:
                 else:
                     value = widget_info["var"].get()
 
-                # 更新到配置中（需要找到正确的位置）
+                # 更新到配置中
                 self._update_config_value(config, key, value)
 
             except ValueError as e:
@@ -353,76 +369,11 @@ class ParamsPanel:
             value: 新值
         """
         # 在各个部分中查找并更新
-        if "network" in config:
-            network = config["network"]
-
-            # 处理用户数量的两种命名
-            if key == "num_users":
-                old_num_users = network.get("num_secondary_users") or network.get("num_users", 0)
-                old_num_channels = network.get("num_channels", 0)
-
-                # 先调整矩阵
-                if old_num_users != value and "availability_matrix" in network:
-                    self._resize_availability_matrix(network, old_num_users, old_num_channels, value, old_num_channels)
-
-                # 再更新用户数量
-                if "num_secondary_users" in network:
-                    network["num_secondary_users"] = value
-                elif "num_users" in network:
-                    network["num_users"] = value
-                else:
-                    network["num_secondary_users"] = value
-
-            elif key == "num_channels":
-                old_num_users = network.get("num_secondary_users") or network.get("num_users", 0)
-                old_num_channels = network.get("num_channels", 0)
-
-                # 先调整矩阵
-                if old_num_channels != value and "availability_matrix" in network:
-                    self._resize_availability_matrix(network, old_num_users, old_num_channels, old_num_users, value)
-
-                # 再更新信道数量
-                network[key] = value
-
-            elif key in network:
-                network[key] = value
+        if "network" in config and key in config["network"]:
+            config["network"][key] = value
 
         if "constraints" in config and key in config["constraints"]:
             config["constraints"][key] = value
 
         if "algorithm" in config and key in config["algorithm"]:
             config["algorithm"][key] = value
-
-    def _resize_availability_matrix(
-        self,
-        network: dict,
-        old_num_users: int,
-        old_num_channels: int,
-        new_num_users: int,
-        new_num_channels: int
-    ):
-        """
-        调整可用性矩阵大小
-
-        Args:
-            network: 网络配置字典
-            old_num_users: 旧的用户数量
-            old_num_channels: 旧的信道数量
-            new_num_users: 新的用户数量
-            new_num_channels: 新的信道数量
-        """
-        old_matrix = network.get("availability_matrix", [])
-
-        # 创建新矩阵
-        new_matrix = []
-        for i in range(new_num_users):
-            row = []
-            for j in range(new_num_channels):
-                # 如果在原矩阵范围内，保留原值；否则填充1（可用）
-                if i < len(old_matrix) and j < len(old_matrix[i]):
-                    row.append(old_matrix[i][j])
-                else:
-                    row.append(1)
-            new_matrix.append(row)
-
-        network["availability_matrix"] = new_matrix

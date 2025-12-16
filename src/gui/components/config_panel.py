@@ -88,6 +88,41 @@ class ConfigPanel:
         )
         self.example_button.pack(side=tk.LEFT)
 
+        # 快速生成配置区域
+        quick_frame = ttk.LabelFrame(self.frame, text="快速生成配置", padding="10")
+        quick_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # 说明文本
+        desc_label = ttk.Label(
+            quick_frame,
+            text="无需配置文件，直接输入参数快速生成默认配置",
+            foreground="gray",
+            font=("Arial", 9)
+        )
+        desc_label.pack(pady=(0, 10))
+
+        # 参数输入区域
+        params_frame = ttk.Frame(quick_frame)
+        params_frame.pack(fill=tk.X)
+
+        # 用户数量
+        ttk.Label(params_frame, text="用户数量:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5), pady=5)
+        self.quick_users_var = tk.StringVar(value="3")
+        ttk.Entry(params_frame, textvariable=self.quick_users_var, width=10).grid(row=0, column=1, sticky=tk.W, pady=5)
+
+        # 信道数量
+        ttk.Label(params_frame, text="信道数量:").grid(row=0, column=2, sticky=tk.W, padx=(20, 5), pady=5)
+        self.quick_channels_var = tk.StringVar(value="3")
+        ttk.Entry(params_frame, textvariable=self.quick_channels_var, width=10).grid(row=0, column=3, sticky=tk.W, pady=5)
+
+        # 生成按钮
+        self.generate_button = ttk.Button(
+            params_frame,
+            text="生成并加载配置",
+            command=self._generate_quick_config
+        )
+        self.generate_button.grid(row=0, column=4, padx=(20, 0), pady=5)
+
         # 配置信息显示区域
         info_frame = ttk.LabelFrame(self.frame, text="配置信息", padding="10")
         info_frame.pack(fill=tk.BOTH, expand=True)
@@ -312,3 +347,105 @@ class ConfigPanel:
         """继续按钮点击"""
         # 这个功能由主窗口处理（切换标签页）
         pass
+
+    def _generate_quick_config(self):
+        """快速生成配置"""
+        try:
+            # 读取并验证输入
+            num_users = int(self.quick_users_var.get())
+            num_channels = int(self.quick_channels_var.get())
+
+            if num_users <= 0 or num_channels <= 0:
+                messagebox.showerror("输入错误", "用户数量和信道数量必须大于0")
+                return
+
+            if num_users > 100 or num_channels > 100:
+                if not messagebox.askyesno(
+                    "确认",
+                    f"您输入的规模较大（{num_users}×{num_channels}），可能需要较长时间运行。\n是否继续？"
+                ):
+                    return
+
+            # 生成配置
+            config = self._create_default_config(num_users, num_channels)
+
+            # 更新界面
+            self.file_path_var.set(f"[快速生成] {num_users}用户 × {num_channels}信道")
+            self.file_path_label.config(foreground="blue")
+
+            # 显示配置信息
+            self._display_config_info(config)
+
+            # 启用继续按钮
+            self.continue_button.config(state=tk.NORMAL)
+
+            # 保存到状态
+            self.state.current_config_file = None  # 快速生成的配置没有文件路径
+            self.state.current_config = config
+
+            # 调用回调
+            if self.on_load_callback:
+                self.on_load_callback(None, config)
+
+            messagebox.showinfo("成功", f"配置已生成！\n{num_users} 用户 × {num_channels} 信道")
+
+        except ValueError:
+            messagebox.showerror("输入错误", "请输入有效的数字")
+        except Exception as e:
+            messagebox.showerror("错误", f"生成配置失败:\n{e}")
+
+    def _create_default_config(self, num_users: int, num_channels: int) -> dict:
+        """
+        创建默认配置
+
+        Args:
+            num_users: 用户数量
+            num_channels: 信道数量
+
+        Returns:
+            dict: 配置字典
+        """
+        # 生成全1的可用性矩阵（所有信道对所有用户可用）
+        availability_matrix = [[1 for _ in range(num_channels)] for _ in range(num_users)]
+
+        # 生成全0的邻接矩阵（用户间无干扰）
+        adjacency_matrix = [[0 for _ in range(num_users)] for _ in range(num_users)]
+
+        # 创建配置字典
+        config = {
+            "metadata": {
+                "name": f"快速生成配置 ({num_users}x{num_channels})",
+                "description": "通过GUI快速生成的默认配置"
+            },
+            "network": {
+                "num_secondary_users": num_users,
+                "num_channels": num_channels,
+                "availability_matrix": availability_matrix
+            },
+            "primary_users": {
+                "occupied_channels": []
+            },
+            "interference": {
+                "adjacency_matrix": adjacency_matrix
+            },
+            "constraints": {
+                "enable_availability": True,
+                "enable_single_transceiver": True,
+                "enable_interference_avoidance": True,
+                "max_channels_per_user": 1,
+                "min_spectrum_utilization": 0.0,
+                "priority_users": []
+            },
+            "algorithm": {
+                "type": "hungarian",
+                "timeout": 60
+            },
+            "output": {
+                "save_results": True,
+                "generate_visualization": True,
+                "output_dir": "results"
+            }
+        }
+
+        return config
+
