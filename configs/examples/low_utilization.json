@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "低频谱利用率演示",
+    "description": "用户数少于可用信道数，展示利用率下降"
+  },
+  "network": {
+    "num_secondary_users": 5,
+    "num_channels": 12,
+    "availability_matrix": [
+      [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
+    ]
+  },
+  "primary_users": {
+    "occupied_channels": [1, 4]
+  },
+  "interference": {
+    "adjacency_matrix": [
+      [0, 1, 0, 0, 0],
+      [1, 0, 1, 0, 0],
+      [0, 1, 0, 1, 0],
+      [0, 0, 1, 0, 1],
+      [0, 0, 0, 1, 0]
+    ]
+  },
+  "constraints": {
+    "enable_availability": true,
+    "enable_single_transceiver": true,
+    "enable_interference_avoidance": false
+  },
+  "output": {
+    "save_results": true,
+    "output_dir": "results/low_util/",
+    "generate_visualization": false
+  }
+}

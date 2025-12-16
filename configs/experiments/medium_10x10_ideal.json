@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "name": "中规模-理想场景(10×10)",
+    "description": "10用户10信道，密集可用性，少量主用户占用"
+  },
+  "network": {
+    "num_secondary_users": 10,
+    "num_channels": 10,
+    "availability_matrix": [
+      [1, 1, 1, 0, 0, 1, 0, 0, 0, 0],
+      [1, 1, 0, 1, 0, 0, 1, 0, 0, 0],
+      [0, 1, 1, 1, 0, 0, 0, 1, 0, 0],
+      [0, 0, 1, 1, 1, 0, 0, 0, 1, 0],
+      [1, 0, 0, 1, 1, 0, 0, 0, 0, 1],
+      [1, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+      [0, 1, 1, 0, 0, 1, 1, 0, 0, 0],
+      [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 1, 1, 0],
+      [1, 0, 0, 0, 1, 1, 0, 0, 1, 1]
+    ]
+  },
+  "primary_users": {
+    "occupied_channels": [2, 7]
+  },
+  "interference": {
+    "adjacency_matrix": [
+      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0, 1, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+    ]
+  },
+  "constraints": {
+    "enable_availability": true,
+    "enable_single_transceiver": true,
+    "enable_interference_avoidance": false
+  },
+  "output": {
+    "save_results": true,
+    "output_dir": "results/scale_comparison/",
+    "generate_visualization": false
+  }
+}

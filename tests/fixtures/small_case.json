@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "小规模测试用例",
+    "description": "3个用户，3个信道，已知最优解为3"
+  },
+  "network": {
+    "num_secondary_users": 3,
+    "num_channels": 3,
+    "availability_matrix": [
+      [1, 0, 1],
+      [1, 1, 0],
+      [0, 1, 1]
+    ]
+  },
+  "primary_users": {
+    "occupied_channels": []
+  },
+  "interference": {
+    "adjacency_matrix": [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0]
+    ]
+  },
+  "constraints": {
+    "enable_availability": true,
+    "enable_single_transceiver": true,
+    "enable_interference_avoidance": false
+  },
+  "output": {
+    "save_results": true,
+    "output_dir": "results/test/",
+    "generate_visualization": false
+  },
+  "expected_result": {
+    "num_matches": 3,
+    "note": "完美匹配：用户0->信道0, 用户1->信道1, 用户2->信道2"
+  }
+}
