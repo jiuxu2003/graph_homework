@@ -102,8 +102,11 @@ python src/gui_main.py
 
 ### 运行 CLI（命令行）
 ```bash
-# 运行单个实验
-python -m src.main configs/examples/simple_3x3.json
+# 运行单个实验（使用 --config 参数）
+python -m src.main --config configs/examples/simple_3x3.json
+
+# 或使用短参数
+python -m src.main -c configs/examples/simple_3x3.json
 
 # 运行批量实验
 python demo_batch_experiment.py
@@ -171,7 +174,7 @@ pytest tests/gui/test_gui_state.py -v
 
 ### 3. 快速测试CLI
 ```bash
-python -m src.main configs/examples/simple_3x3.json
+python -m src.main --config configs/examples/simple_3x3.json
 ```
 
 ## 常见问题
