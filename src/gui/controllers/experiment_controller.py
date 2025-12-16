@@ -186,20 +186,24 @@ class ExperimentController:
         if str(src_dir) not in sys.path:
             sys.path.insert(0, str(src_dir))
 
-        # 先导入项目的 io 包以避免与标准库冲突
-        import io as stdlib_io  # 保存标准库的 io
+        # 保存标准库 io 模块的引用（如果已加载）
+        stdlib_io = sys.modules.get('io', None)
 
-        # 清除 sys.modules 中的 io，这样才能导入项目的 io 包
+        # 临时移除 sys.modules 中的 io，以便导入项目的 io 包
         if 'io' in sys.modules:
-            temp_io = sys.modules.pop('io')
+            del sys.modules['io']
 
         try:
             # 现在可以导入项目中的 io 包
             from io.config_loader import ConfigLoader
             from algorithm.matcher import Matcher
         finally:
-            # 恢复标准库的 io 模块
-            sys.modules['io'] = stdlib_io
+            # 恢复标准库的 io 模块（如果之前存在）
+            if stdlib_io is not None:
+                sys.modules['io'] = stdlib_io
+            elif 'io' in sys.modules:
+                # 如果导入了项目的 io，移除它以避免后续冲突
+                del sys.modules['io']
 
         start_time = time.time()
 
