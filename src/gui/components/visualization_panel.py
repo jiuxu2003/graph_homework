@@ -189,9 +189,10 @@ class VisualizationPanel:
 
         import numpy as np
 
-        # 获取维度
-        num_users = config.get("network_topology", {}).get("num_users", 0)
-        num_channels = config.get("network_topology", {}).get("num_channels", 0)
+        # 获取维度（使用CLI格式）
+        network = config.get("network", {})
+        num_users = network.get("num_secondary_users") or network.get("num_users", 0)
+        num_channels = network.get("num_channels", 0)
 
         if num_users == 0 or num_channels == 0:
             return

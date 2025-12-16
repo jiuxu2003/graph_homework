@@ -120,17 +120,20 @@ class ParamsPanel:
         row = 0
 
         # 网络拓扑参数
-        if "network_topology" in config:
+        if "network" in config:
             self._create_section_header(self.scrollable_frame, "网络拓扑", row)
             row += 1
 
-            topo = config["network_topology"]
+            network = config["network"]
+
+            # 兼容两种命名
+            num_users = network.get("num_secondary_users") or network.get("num_users", 0)
 
             row = self._create_param_field(
                 self.scrollable_frame,
                 "用户数量",
                 "num_users",
-                topo.get("num_users", 0),
+                num_users,
                 "int",
                 row
             )
@@ -139,7 +142,7 @@ class ParamsPanel:
                 self.scrollable_frame,
                 "信道数量",
                 "num_channels",
-                topo.get("num_channels", 0),
+                network.get("num_channels", 0),
                 "int",
                 row
             )
@@ -152,6 +155,36 @@ class ParamsPanel:
             row += 1
 
             constraints = config["constraints"]
+
+            if "enable_availability" in constraints:
+                row = self._create_param_field(
+                    self.scrollable_frame,
+                    "可用性约束",
+                    "enable_availability",
+                    constraints["enable_availability"],
+                    "bool",
+                    row
+                )
+
+            if "enable_single_transceiver" in constraints:
+                row = self._create_param_field(
+                    self.scrollable_frame,
+                    "单收发器约束",
+                    "enable_single_transceiver",
+                    constraints["enable_single_transceiver"],
+                    "bool",
+                    row
+                )
+
+            if "enable_interference_avoidance" in constraints:
+                row = self._create_param_field(
+                    self.scrollable_frame,
+                    "干扰避免约束",
+                    "enable_interference_avoidance",
+                    constraints["enable_interference_avoidance"],
+                    "bool",
+                    row
+                )
 
             if "max_channels_per_user" in constraints:
                 row = self._create_param_field(
@@ -222,7 +255,7 @@ class ParamsPanel:
             label: 参数标签
             key: 参数键名
             value: 参数值
-            param_type: 参数类型 (int/float/str)
+            param_type: 参数类型 (int/float/str/bool)
             row: 行号
 
         Returns:
@@ -232,17 +265,29 @@ class ParamsPanel:
         label_widget = ttk.Label(parent, text=f"{label}:")
         label_widget.grid(row=row, column=0, sticky=tk.W, padx=(10, 5), pady=5)
 
-        # 输入框
-        entry_var = tk.StringVar(value=str(value))
-        entry = ttk.Entry(parent, textvariable=entry_var, width=20)
-        entry.grid(row=row, column=1, sticky=tk.W, pady=5)
+        # 根据类型创建不同的输入控件
+        if param_type == "bool":
+            # 布尔类型使用复选框
+            var = tk.BooleanVar(value=bool(value))
+            checkbox = ttk.Checkbutton(parent, variable=var)
+            checkbox.grid(row=row, column=1, sticky=tk.W, pady=5)
 
-        # 保存引用
-        self.param_widgets[key] = {
-            "var": entry_var,
-            "type": param_type,
-            "original": value
-        }
+            self.param_widgets[key] = {
+                "var": var,
+                "type": param_type,
+                "original": value
+            }
+        else:
+            # 其他类型使用输入框
+            entry_var = tk.StringVar(value=str(value))
+            entry = ttk.Entry(parent, textvariable=entry_var, width=20)
+            entry.grid(row=row, column=1, sticky=tk.W, pady=5)
+
+            self.param_widgets[key] = {
+                "var": entry_var,
+                "type": param_type,
+                "original": value
+            }
 
         return row + 1
 
@@ -274,22 +319,25 @@ class ParamsPanel:
         # 更新参数
         for key, widget_info in self.param_widgets.items():
             try:
-                value_str = widget_info["var"].get()
                 param_type = widget_info["type"]
 
                 # 类型转换
-                if param_type == "int":
+                if param_type == "bool":
+                    value = widget_info["var"].get()
+                elif param_type == "int":
+                    value_str = widget_info["var"].get()
                     value = int(value_str)
                 elif param_type == "float":
+                    value_str = widget_info["var"].get()
                     value = float(value_str)
                 else:
-                    value = value_str
+                    value = widget_info["var"].get()
 
                 # 更新到配置中（需要找到正确的位置）
                 self._update_config_value(config, key, value)
 
             except ValueError as e:
-                raise ValueError(f"参数 {key} 的值无效: {value_str}")
+                raise ValueError(f"参数 {key} 的值无效: {widget_info['var'].get()}")
 
         return config
 
@@ -303,9 +351,22 @@ class ParamsPanel:
             value: 新值
         """
         # 在各个部分中查找并更新
-        if "network_topology" in config and key in config["network_topology"]:
-            config["network_topology"][key] = value
-        elif "constraints" in config and key in config["constraints"]:
+        if "network" in config:
+            network = config["network"]
+
+            # 处理用户数量的两种命名
+            if key == "num_users":
+                if "num_secondary_users" in network:
+                    network["num_secondary_users"] = value
+                elif "num_users" in network:
+                    network["num_users"] = value
+                else:
+                    network["num_secondary_users"] = value
+            elif key in network:
+                network[key] = value
+
+        if "constraints" in config and key in config["constraints"]:
             config["constraints"][key] = value
-        elif "algorithm" in config and key in config["algorithm"]:
+
+        if "algorithm" in config and key in config["algorithm"]:
             config["algorithm"][key] = value

@@ -177,7 +177,7 @@ class Validator:
     @staticmethod
     def validate_config_structure(config: dict, name: str) -> List[str]:
         """
-        验证配置文件结构
+        验证配置文件结构（兼容CLI格式）
 
         Args:
             config: 配置字典
@@ -188,32 +188,34 @@ class Validator:
         """
         errors = []
 
-        # 检查必需的顶层字段
-        required_fields = ['network_topology', 'constraints', 'output']
-        for field in required_fields:
-            if field not in config:
-                errors.append(f"缺少必需字段: {field}")
+        # 检查必需的顶层字段（使用CLI格式）
+        if 'network' not in config:
+            errors.append("缺少必需字段: network")
 
-        # 验证network_topology结构
-        if 'network_topology' in config:
-            topology = config['network_topology']
-            if not isinstance(topology, dict):
-                errors.append("network_topology必须是字典类型")
+        # 验证network结构
+        if 'network' in config:
+            network = config['network']
+            if not isinstance(network, dict):
+                errors.append("network必须是字典类型")
             else:
-                if 'num_users' not in topology:
-                    errors.append("network_topology缺少num_users字段")
-                if 'num_channels' not in topology:
-                    errors.append("network_topology缺少num_channels字段")
-                if 'availability_matrix' not in topology:
-                    errors.append("network_topology缺少availability_matrix字段")
+                # 检查必需字段（兼容两种命名）
+                has_users = 'num_secondary_users' in network or 'num_users' in network
+                if not has_users:
+                    errors.append("network缺少num_secondary_users或num_users字段")
 
-        # 验证constraints结构
+                if 'num_channels' not in network:
+                    errors.append("network缺少num_channels字段")
+
+                if 'availability_matrix' not in network:
+                    errors.append("network缺少availability_matrix字段")
+
+        # 验证constraints结构（可选）
         if 'constraints' in config:
             constraints = config['constraints']
             if not isinstance(constraints, dict):
                 errors.append("constraints必须是字典类型")
 
-        # 验证output结构
+        # 验证output结构（可选）
         if 'output' in config:
             output = config['output']
             if not isinstance(output, dict):

@@ -211,22 +211,66 @@ class ConfigPanel:
         info_lines.append("=" * 50)
         info_lines.append("")
 
-        if "name" in config:
+        # 从metadata或顶层获取名称
+        if "metadata" in config and "name" in config["metadata"]:
+            info_lines.append(f"实验名称: {config['metadata']['name']}")
+        elif "name" in config:
             info_lines.append(f"实验名称: {config['name']}")
-            info_lines.append("")
+        info_lines.append("")
 
         # 网络拓扑
-        if "network_topology" in config:
-            topo = config["network_topology"]
+        if "network" in config:
+            network = config["network"]
             info_lines.append("【网络拓扑】")
-            info_lines.append(f"  用户数量: {topo.get('num_users', 'N/A')}")
-            info_lines.append(f"  信道数量: {topo.get('num_channels', 'N/A')}")
+
+            # 兼容两种命名
+            num_users = network.get('num_secondary_users') or network.get('num_users', 'N/A')
+            info_lines.append(f"  用户数量: {num_users}")
+            info_lines.append(f"  信道数量: {network.get('num_channels', 'N/A')}")
+
+            if "availability_matrix" in network:
+                matrix = network["availability_matrix"]
+                info_lines.append(f"  可用性矩阵: {len(matrix)}x{len(matrix[0]) if matrix else 0}")
+
+            info_lines.append("")
+
+        # 主用户信息
+        if "primary_users" in config:
+            primary = config["primary_users"]
+            info_lines.append("【主用户】")
+
+            occupied = primary.get("occupied_channels", [])
+            if occupied:
+                info_lines.append(f"  占用信道: {', '.join(map(str, occupied))}")
+            else:
+                info_lines.append("  占用信道: 无")
+
+            info_lines.append("")
+
+        # 干扰图信息
+        if "interference" in config:
+            interference = config["interference"]
+            info_lines.append("【干扰图】")
+
+            if "adjacency_matrix" in interference:
+                matrix = interference["adjacency_matrix"]
+                info_lines.append(f"  邻接矩阵: {len(matrix)}x{len(matrix[0]) if matrix else 0}")
+
             info_lines.append("")
 
         # 约束条件
         if "constraints" in config:
             constraints = config["constraints"]
             info_lines.append("【约束条件】")
+
+            if "enable_availability" in constraints:
+                info_lines.append(f"  可用性约束: {'启用' if constraints['enable_availability'] else '禁用'}")
+
+            if "enable_single_transceiver" in constraints:
+                info_lines.append(f"  单收发器约束: {'启用' if constraints['enable_single_transceiver'] else '禁用'}")
+
+            if "enable_interference_avoidance" in constraints:
+                info_lines.append(f"  干扰避免约束: {'启用' if constraints['enable_interference_avoidance'] else '禁用'}")
 
             if "max_channels_per_user" in constraints:
                 info_lines.append(f"  每用户最大信道数: {constraints['max_channels_per_user']}")
@@ -255,8 +299,11 @@ class ConfigPanel:
         if "output" in config:
             output = config["output"]
             info_lines.append("【输出设置】")
-            info_lines.append(f"  保存结果: {'是' if output.get('save_result', False) else '否'}")
+            info_lines.append(f"  保存结果: {'是' if output.get('save_results', False) else '否'}")
             info_lines.append(f"  生成可视化: {'是' if output.get('generate_visualization', False) else '否'}")
+
+            if "output_dir" in output:
+                info_lines.append(f"  输出目录: {output['output_dir']}")
 
         self.info_text.insert("1.0", "\n".join(info_lines))
         self.info_text.config(state=tk.DISABLED)
