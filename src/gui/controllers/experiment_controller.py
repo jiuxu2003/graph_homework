@@ -9,9 +9,42 @@ from pathlib import Path
 import uuid
 import json
 from datetime import datetime
+import sys
+import importlib
 
 from ..utils.threading_utils import BackgroundTask, TaskStatus, TaskResult
 from ..utils.validation import validate_experiment_config, ValidationError
+
+# 在模块顶部导入 ConfigLoader 和 Matcher
+# 从 gui_main.py 预加载的模块中获取
+def _import_project_modules():
+    """导入项目模块，使用 gui_main.py 预加载的版本"""
+    # 尝试从预加载的模块中获取
+    if 'project_io_config_loader' in sys.modules:
+        config_loader_module = sys.modules['project_io_config_loader']
+    elif 'io.config_loader' in sys.modules:
+        config_loader_module = sys.modules['io.config_loader']
+    else:
+        # 如果都没有，尝试导入（可能会有冲突）
+        import io.config_loader as config_loader_module
+
+    if 'project_algorithm_matcher' in sys.modules:
+        matcher_module = sys.modules['project_algorithm_matcher']
+    elif 'algorithm.matcher' in sys.modules:
+        matcher_module = sys.modules['algorithm.matcher']
+    else:
+        import algorithm.matcher as matcher_module
+
+    return config_loader_module.ConfigLoader, matcher_module.Matcher
+
+# 在模块加载时就导入这些类
+try:
+    ConfigLoader, Matcher = _import_project_modules()
+except Exception as e:
+    # 如果导入失败，设置为 None，在使用时再报错
+    ConfigLoader = None
+    Matcher = None
+    print(f"警告: 无法导入 ConfigLoader 和 Matcher: {e}", file=sys.stderr)
 
 
 class ExperimentController:
@@ -178,32 +211,10 @@ class ExperimentController:
             Dict[str, Any]: 实验结果
         """
         import time
-        import sys
-        from pathlib import Path
 
-        # 确保 src 目录在 sys.path 中（通常由 gui_main.py 添加）
-        src_dir = Path(__file__).parent.parent.parent
-        if str(src_dir) not in sys.path:
-            sys.path.insert(0, str(src_dir))
-
-        # 保存标准库 io 模块的引用（如果已加载）
-        stdlib_io = sys.modules.get('io', None)
-
-        # 临时移除 sys.modules 中的 io，以便导入项目的 io 包
-        if 'io' in sys.modules:
-            del sys.modules['io']
-
-        try:
-            # 现在可以导入项目中的 io 包
-            from io.config_loader import ConfigLoader
-            from algorithm.matcher import Matcher
-        finally:
-            # 恢复标准库的 io 模块（如果之前存在）
-            if stdlib_io is not None:
-                sys.modules['io'] = stdlib_io
-            elif 'io' in sys.modules:
-                # 如果导入了项目的 io，移除它以避免后续冲突
-                del sys.modules['io']
+        # 检查是否成功导入了必需的类
+        if ConfigLoader is None or Matcher is None:
+            raise RuntimeError("无法导入必需的模块 (ConfigLoader 或 Matcher)")
 
         start_time = time.time()
 

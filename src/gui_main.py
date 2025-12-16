@@ -12,6 +12,17 @@ from pathlib import Path
 # 确保能导入src模块
 sys.path.insert(0, str(Path(__file__).parent))
 
+# 预先导入项目的 io 和 algorithm 模块，避免后续与标准库冲突
+# 使用别名存储到 sys.modules 中
+try:
+    import io.config_loader
+    import algorithm.matcher
+    # 将这些模块以别名存储，供后续使用
+    sys.modules['project_io_config_loader'] = sys.modules['io.config_loader']
+    sys.modules['project_algorithm_matcher'] = sys.modules['algorithm.matcher']
+except ImportError as e:
+    print(f"警告: 预加载模块失败: {e}", file=sys.stderr)
+
 from gui.components.main_window import MainWindow
 
 
