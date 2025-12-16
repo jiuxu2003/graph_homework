@@ -64,7 +64,7 @@ class ExperimentController:
 
     def validate_config(self, config: Dict[str, Any]) -> List[str]:
         """
-        验证实验配置的有效性
+        验证实验配置的有效性（兼容CLI格式）
 
         Args:
             config: 要验证的配置字典
@@ -74,29 +74,29 @@ class ExperimentController:
         """
         errors = []
 
-        # 验证network_topology
-        if 'network_topology' not in config:
-            errors.append("缺少network_topology字段")
+        # 验证network（使用CLI格式）
+        if 'network' not in config:
+            errors.append("缺少network字段")
         else:
-            topology = config['network_topology']
-            if topology.get('num_users', 0) <= 0:
-                errors.append("num_users必须大于0")
-            if topology.get('num_channels', 0) <= 0:
-                errors.append("num_channels必须大于0")
+            network = config['network']
 
-        # 验证constraints
-        if 'constraints' not in config:
-            errors.append("缺少constraints字段")
-        else:
+            # 兼容两种用户数命名
+            num_users = network.get('num_secondary_users') or network.get('num_users', 0)
+            if num_users <= 0:
+                errors.append("用户数量必须大于0")
+
+            if network.get('num_channels', 0) <= 0:
+                errors.append("信道数量必须大于0")
+
+            # 验证可用性矩阵存在
+            if 'availability_matrix' not in network:
+                errors.append("缺少availability_matrix字段")
+
+        # 验证constraints（可选字段）
+        if 'constraints' in config:
             constraints = config['constraints']
-            # 至少需要一个约束条件
-            has_constraint = any([
-                constraints.get('availability', False),
-                constraints.get('single_transceiver', False),
-                constraints.get('avoid_interference', False)
-            ])
-            if not has_constraint:
-                errors.append("至少需要启用一个约束条件")
+            if not isinstance(constraints, dict):
+                errors.append("constraints必须是字典类型")
 
         return errors
 
