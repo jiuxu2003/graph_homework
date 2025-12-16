@@ -46,19 +46,38 @@ class Validator:
         if 'availability_matrix' not in network:
             errors.append("缺少必需字段: network.availability_matrix")
         else:
-            matrix = np.array(network['availability_matrix'])
-            expected_shape = (network['num_secondary_users'], network['num_channels'])
-            if matrix.shape != expected_shape:
-                errors.append(f"可用性矩阵维度错误: 期望{expected_shape}, 实际{matrix.shape}")
+            # 支持简化字符串格式，跳过维度检查
+            availability_spec = network['availability_matrix']
+            if isinstance(availability_spec, str):
+                # 字符串格式（如 "random_sparse_0.3", "all_ones" 等）
+                # 在config_loader中会被解析，这里不做维度检查
+                pass
+            elif isinstance(availability_spec, list):
+                # 数组格式，检查维度
+                matrix = np.array(availability_spec)
+                expected_shape = (network['num_secondary_users'], network['num_channels'])
+                if matrix.shape != expected_shape:
+                    errors.append(f"可用性矩阵维度错误: 期望{expected_shape}, 实际{matrix.shape}")
+            else:
+                errors.append(f"availability_matrix格式无效: 必须是数组或字符串")
 
         # 验证干扰矩阵（如果存在）
         if 'interference' in config and 'adjacency_matrix' in config['interference']:
-            interference = np.array(config['interference']['adjacency_matrix'])
-            expected_shape = (network['num_secondary_users'], network['num_secondary_users'])
-            if interference.shape != expected_shape:
-                errors.append(f"干扰矩阵维度错误: 期望{expected_shape}, 实际{interference.shape}")
-            elif not np.allclose(interference, interference.T):
-                errors.append("干扰矩阵必须是对称矩阵")
+            adjacency_spec = config['interference']['adjacency_matrix']
+            if isinstance(adjacency_spec, str):
+                # 字符串格式（如 "chain", "complete" 等）
+                # 在config_loader中会被解析，这里不做维度检查
+                pass
+            elif isinstance(adjacency_spec, list):
+                # 数组格式，检查维度
+                interference = np.array(adjacency_spec)
+                expected_shape = (network['num_secondary_users'], network['num_secondary_users'])
+                if interference.shape != expected_shape:
+                    errors.append(f"干扰矩阵维度错误: 期望{expected_shape}, 实际{interference.shape}")
+                elif not np.allclose(interference, interference.T):
+                    errors.append("干扰矩阵必须是对称矩阵")
+            else:
+                errors.append(f"adjacency_matrix格式无效: 必须是数组或字符串")
 
         # 验证主用户占用信道（如果存在）
         if 'primary_users' in config and 'occupied_channels' in config['primary_users']:
