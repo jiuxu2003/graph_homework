@@ -9,42 +9,11 @@ from pathlib import Path
 import uuid
 import json
 from datetime import datetime
-import sys
-import importlib
+import subprocess
+import tempfile
 
 from ..utils.threading_utils import BackgroundTask, TaskStatus, TaskResult
 from ..utils.validation import validate_experiment_config, ValidationError
-
-# 在模块顶部导入 ConfigLoader 和 Matcher
-# 从 gui_main.py 预加载的模块中获取
-def _import_project_modules():
-    """导入项目模块，使用 gui_main.py 预加载的版本"""
-    # 尝试从预加载的模块中获取
-    if 'project_io_config_loader' in sys.modules:
-        config_loader_module = sys.modules['project_io_config_loader']
-    elif 'io.config_loader' in sys.modules:
-        config_loader_module = sys.modules['io.config_loader']
-    else:
-        # 如果都没有，尝试导入（可能会有冲突）
-        import io.config_loader as config_loader_module
-
-    if 'project_algorithm_matcher' in sys.modules:
-        matcher_module = sys.modules['project_algorithm_matcher']
-    elif 'algorithm.matcher' in sys.modules:
-        matcher_module = sys.modules['algorithm.matcher']
-    else:
-        import algorithm.matcher as matcher_module
-
-    return config_loader_module.ConfigLoader, matcher_module.Matcher
-
-# 在模块加载时就导入这些类
-try:
-    ConfigLoader, Matcher = _import_project_modules()
-except Exception as e:
-    # 如果导入失败，设置为 None，在使用时再报错
-    ConfigLoader = None
-    Matcher = None
-    print(f"警告: 无法导入 ConfigLoader 和 Matcher: {e}", file=sys.stderr)
 
 
 class ExperimentController:
@@ -202,7 +171,7 @@ class ExperimentController:
 
     def _run_cli_algorithm(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
-        调用CLI核心算法运行实验
+        通过调用 CLI 运行实验
 
         Args:
             config: 实验配置
@@ -211,43 +180,88 @@ class ExperimentController:
             Dict[str, Any]: 实验结果
         """
         import time
-
-        # 检查是否成功导入了必需的类
-        if ConfigLoader is None or Matcher is None:
-            raise RuntimeError("无法导入必需的模块 (ConfigLoader 或 Matcher)")
+        import sys
 
         start_time = time.time()
 
-        try:
-            # 解析配置
-            topology = ConfigLoader.parse_network_topology(config)
-            constraints = ConfigLoader.parse_constraints(config)
+        # 创建临时配置文件
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+            temp_config_path = f.name
 
-            # 创建匹配器并运行
-            matcher = Matcher(topology, constraints)
-            matching = matcher.run()
+        try:
+            # 获取项目根目录（src 的父目录）
+            project_root = Path(__file__).parent.parent.parent.parent
+
+            # 调用 CLI
+            result = subprocess.run(
+                [sys.executable, '-m', 'src.main', '--config', temp_config_path],
+                cwd=str(project_root),
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+
+            # 检查是否成功
+            if result.returncode != 0:
+                raise RuntimeError(f"CLI 执行失败:\n{result.stderr}")
+
+            # 解析 CLI 输出
+            # CLI 应该输出结果到 stdout 或保存到文件
+            # 这里我们需要解析 CLI 的输出格式
+
+            # 简单实现：从 CLI 的输出中提取信息
+            output_lines = result.stdout.strip().split('\n')
+
+            # 尝试从输出中解析结果
+            num_matches = 0
+            matching = []
+
+            for line in output_lines:
+                if '匹配数量:' in line or 'Number of matches:' in line:
+                    try:
+                        num_matches = int(line.split(':')[1].strip())
+                    except:
+                        pass
+                elif '匹配对:' in line or 'Matching pairs:' in line:
+                    # 解析匹配对
+                    try:
+                        pairs_str = line.split(':', 1)[1].strip()
+                        # 假设格式为 [(0,1), (2,3), ...]
+                        import ast
+                        matching = ast.literal_eval(pairs_str)
+                    except:
+                        pass
 
             # 计算执行时间
             execution_time = time.time() - start_time
 
-            # 构建结果字典（兼容GUI格式）
-            result = {
-                'num_matches': len(matching),
-                'matching': matching,  # 匹配对列表 [(user, channel), ...]
-                'spectrum_utilization': len(matching) / len(topology.channels) if topology.channels else 0,
+            # 构建结果字典
+            network = config.get('network', {})
+            num_channels = network.get('num_channels', 0)
+
+            result_dict = {
+                'num_matches': num_matches if num_matches > 0 else len(matching),
+                'matching': matching,
+                'spectrum_utilization': len(matching) / num_channels if num_channels > 0 else 0,
                 'execution_time': execution_time,
-                'constraints_satisfied': True,  # Matcher只返回满足约束的匹配
+                'constraints_satisfied': True,
                 'matched_users': [pair[0] for pair in matching],
                 'matched_channels': [pair[1] for pair in matching],
-                'num_users': len(topology.secondary_users),
-                'num_channels': len(topology.channels)
             }
 
-            return result
+            return result_dict
 
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("实验执行超时（超过5分钟）")
         except Exception as e:
-            # 记录错误并重新抛出
-            raise RuntimeError(f"算法运行失败: {e}") from e
+            raise RuntimeError(f"调用 CLI 失败: {e}")
+        finally:
+            # 清理临时文件
+            try:
+                Path(temp_config_path).unlink()
+            except:
+                pass
 
     def _handle_task_result(self):
         """处理后台任务结果"""
