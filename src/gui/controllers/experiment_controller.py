@@ -178,8 +178,27 @@ class ExperimentController:
             Dict[str, Any]: 实验结果
         """
         import time
-        from io.config_loader import ConfigLoader
-        from algorithm.matcher import Matcher
+        import sys
+        from pathlib import Path
+        import importlib.util
+
+        # 动态导入项目中的 io.config_loader 和 algorithm.matcher
+        # 避免与 Python 内置 io 模块冲突
+        src_dir = Path(__file__).parent.parent.parent
+
+        # 导入 config_loader
+        config_loader_path = src_dir / "io" / "config_loader.py"
+        spec = importlib.util.spec_from_file_location("config_loader", config_loader_path)
+        config_loader_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config_loader_module)
+        ConfigLoader = config_loader_module.ConfigLoader
+
+        # 导入 matcher
+        matcher_path = src_dir / "algorithm" / "matcher.py"
+        spec = importlib.util.spec_from_file_location("matcher", matcher_path)
+        matcher_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(matcher_module)
+        Matcher = matcher_module.Matcher
 
         start_time = time.time()
 
