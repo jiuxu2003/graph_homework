@@ -95,7 +95,7 @@ class ResultsPanel:
             height=15,
             state=tk.DISABLED,
             yscrollcommand=scrollbar.set,
-            font=("Courier", 9)
+            font=("Courier", 15)  # 增大字体从9到15
         )
         self.details_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 

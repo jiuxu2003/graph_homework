@@ -184,6 +184,9 @@ class ExperimentController:
 
         start_time = time.time()
 
+        # 创建临时目录用于保存结果
+        temp_dir = tempfile.mkdtemp()
+
         # 创建临时配置文件
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
             json.dump(config, f, indent=2)
@@ -193,9 +196,14 @@ class ExperimentController:
             # 获取项目根目录（src 的父目录）
             project_root = Path(__file__).parent.parent.parent.parent
 
-            # 调用 CLI
+            # 调用 CLI，指定输出目录为临时目录
             result = subprocess.run(
-                [sys.executable, '-m', 'src.main', '--config', temp_config_path],
+                [
+                    sys.executable, '-m', 'src.main',
+                    '--config', temp_config_path,
+                    '--output', temp_dir,
+                    '--no-color'  # 禁用颜色输出，便于解析
+                ],
                 cwd=str(project_root),
                 capture_output=True,
                 text=True,
@@ -206,48 +214,37 @@ class ExperimentController:
             if result.returncode != 0:
                 raise RuntimeError(f"CLI 执行失败:\n{result.stderr}")
 
-            # 解析 CLI 输出
-            # CLI 应该输出结果到 stdout 或保存到文件
-            # 这里我们需要解析 CLI 的输出格式
+            # 读取保存的结果JSON文件
+            result_json_path = Path(temp_dir) / 'result.json'
+            if not result_json_path.exists():
+                raise RuntimeError("CLI 未生成结果文件")
 
-            # 简单实现：从 CLI 的输出中提取信息
-            output_lines = result.stdout.strip().split('\n')
-
-            # 尝试从输出中解析结果
-            num_matches = 0
-            matching = []
-
-            for line in output_lines:
-                if '匹配数量:' in line or 'Number of matches:' in line:
-                    try:
-                        num_matches = int(line.split(':')[1].strip())
-                    except:
-                        pass
-                elif '匹配对:' in line or 'Matching pairs:' in line:
-                    # 解析匹配对
-                    try:
-                        pairs_str = line.split(':', 1)[1].strip()
-                        # 假设格式为 [(0,1), (2,3), ...]
-                        import ast
-                        matching = ast.literal_eval(pairs_str)
-                    except:
-                        pass
+            with open(result_json_path, 'r', encoding='utf-8') as f:
+                cli_result = json.load(f)
 
             # 计算执行时间
             execution_time = time.time() - start_time
+
+            # 转换CLI结果格式为GUI格式
+            # CLI的matchings是 [{"user_id": 0, "channel_id": 2, ...}, ...]
+            # GUI需要的matching是 [(0, 2), (1, 0), ...]
+            matching = [
+                (m['user_id'], m['channel_id'])
+                for m in cli_result.get('matchings', [])
+            ]
 
             # 构建结果字典
             network = config.get('network', {})
             num_channels = network.get('num_channels', 0)
 
             result_dict = {
-                'num_matches': num_matches if num_matches > 0 else len(matching),
+                'num_matches': cli_result.get('num_matches', 0),
                 'matching': matching,
-                'spectrum_utilization': len(matching) / num_channels if num_channels > 0 else 0,
+                'spectrum_utilization': cli_result.get('spectrum_utilization', 0.0),
                 'execution_time': execution_time,
                 'constraints_satisfied': True,
-                'matched_users': [pair[0] for pair in matching],
-                'matched_channels': [pair[1] for pair in matching],
+                'matched_users': cli_result.get('matched_users', []),
+                'matched_channels': cli_result.get('matched_channels', []),
             }
 
             return result_dict
@@ -257,9 +254,15 @@ class ExperimentController:
         except Exception as e:
             raise RuntimeError(f"调用 CLI 失败: {e}")
         finally:
-            # 清理临时文件
+            # 清理临时文件和目录
             try:
                 Path(temp_config_path).unlink()
+            except:
+                pass
+
+            try:
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
             except:
                 pass
 

@@ -150,6 +150,10 @@ class VisualizationPanel:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
             from matplotlib.figure import Figure
 
+            # 配置中文字体支持
+            plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei', 'DejaVu Sans']
+            plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+
             # 清除旧的画布
             for widget in self.canvas_frame.winfo_children():
                 widget.destroy()
