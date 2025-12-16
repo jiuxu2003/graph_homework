@@ -253,13 +253,20 @@ class VisualizationPanel:
 
         bars = ax.barh(categories, values, color=colors)
 
-        # 添加数值标签
-        for bar in bars:
+        # 添加数值标签（避免重叠）
+        for i, bar in enumerate(bars):
             width = bar.get_width()
-            ax.text(width / 2, bar.get_y() + bar.get_height() / 2,
-                   f'{width:.1f}%', ha='center', va='center', fontsize=12, fontweight='bold')
+            # 如果值太小（< 5%），不显示标签或显示在右侧
+            if width < 5:
+                # 值太小时，标签显示在bar右侧
+                ax.text(width + 2, bar.get_y() + bar.get_height() / 2,
+                       f'{width:.1f}%', ha='left', va='center', fontsize=10, color='gray')
+            else:
+                # 正常显示在bar中心
+                ax.text(width / 2, bar.get_y() + bar.get_height() / 2,
+                       f'{width:.1f}%', ha='center', va='center', fontsize=12, fontweight='bold')
 
-        ax.set_xlim(0, target)
+        ax.set_xlim(0, target + 10)  # 增加右侧空间以容纳小值标签
         ax.set_xlabel('百分比 (%)')
         ax.set_title(f'频谱利用率: {utilization:.2f}%')
 

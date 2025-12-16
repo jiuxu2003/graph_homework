@@ -358,12 +358,26 @@ class ParamsPanel:
 
             # 处理用户数量的两种命名
             if key == "num_users":
+                old_value = network.get("num_secondary_users") or network.get("num_users", 0)
                 if "num_secondary_users" in network:
                     network["num_secondary_users"] = value
                 elif "num_users" in network:
                     network["num_users"] = value
                 else:
                     network["num_secondary_users"] = value
+
+                # 如果用户数量改变，需要调整可用性矩阵
+                if old_value != value and "availability_matrix" in network:
+                    self._resize_availability_matrix(network, value, None)
+
+            elif key == "num_channels":
+                old_value = network.get("num_channels", 0)
+                network[key] = value
+
+                # 如果信道数量改变，需要调整可用性矩阵
+                if old_value != value and "availability_matrix" in network:
+                    self._resize_availability_matrix(network, None, value)
+
             elif key in network:
                 network[key] = value
 
@@ -372,3 +386,35 @@ class ParamsPanel:
 
         if "algorithm" in config and key in config["algorithm"]:
             config["algorithm"][key] = value
+
+    def _resize_availability_matrix(self, network: dict, new_num_users: Optional[int], new_num_channels: Optional[int]):
+        """
+        调整可用性矩阵大小
+
+        Args:
+            network: 网络配置字典
+            new_num_users: 新的用户数量（None表示不变）
+            new_num_channels: 新的信道数量（None表示不变）
+        """
+        old_matrix = network.get("availability_matrix", [])
+
+        # 获取当前和新的维度
+        current_num_users = network.get("num_secondary_users") or network.get("num_users", 0)
+        current_num_channels = network.get("num_channels", 0)
+
+        target_num_users = new_num_users if new_num_users is not None else current_num_users
+        target_num_channels = new_num_channels if new_num_channels is not None else current_num_channels
+
+        # 创建新矩阵
+        new_matrix = []
+        for i in range(target_num_users):
+            row = []
+            for j in range(target_num_channels):
+                # 如果在原矩阵范围内，保留原值；否则填充1（可用）
+                if i < len(old_matrix) and j < len(old_matrix[i]):
+                    row.append(old_matrix[i][j])
+                else:
+                    row.append(1)
+            new_matrix.append(row)
+
+        network["availability_matrix"] = new_matrix
