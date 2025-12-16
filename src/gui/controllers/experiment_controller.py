@@ -180,25 +180,26 @@ class ExperimentController:
         import time
         import sys
         from pathlib import Path
-        import importlib.util
 
-        # 动态导入项目中的 io.config_loader 和 algorithm.matcher
-        # 避免与 Python 内置 io 模块冲突
+        # 确保 src 目录在 sys.path 中（通常由 gui_main.py 添加）
         src_dir = Path(__file__).parent.parent.parent
+        if str(src_dir) not in sys.path:
+            sys.path.insert(0, str(src_dir))
 
-        # 导入 config_loader
-        config_loader_path = src_dir / "io" / "config_loader.py"
-        spec = importlib.util.spec_from_file_location("config_loader", config_loader_path)
-        config_loader_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config_loader_module)
-        ConfigLoader = config_loader_module.ConfigLoader
+        # 先导入项目的 io 包以避免与标准库冲突
+        import io as stdlib_io  # 保存标准库的 io
 
-        # 导入 matcher
-        matcher_path = src_dir / "algorithm" / "matcher.py"
-        spec = importlib.util.spec_from_file_location("matcher", matcher_path)
-        matcher_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(matcher_module)
-        Matcher = matcher_module.Matcher
+        # 清除 sys.modules 中的 io，这样才能导入项目的 io 包
+        if 'io' in sys.modules:
+            temp_io = sys.modules.pop('io')
+
+        try:
+            # 现在可以导入项目中的 io 包
+            from io.config_loader import ConfigLoader
+            from algorithm.matcher import Matcher
+        finally:
+            # 恢复标准库的 io 模块
+            sys.modules['io'] = stdlib_io
 
         start_time = time.time()
 
