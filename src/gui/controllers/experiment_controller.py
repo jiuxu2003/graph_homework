@@ -241,6 +241,8 @@ class ExperimentController:
                 'num_matches': cli_result.get('num_matches', 0),
                 'matching': matching,
                 'spectrum_utilization': cli_result.get('spectrum_utilization', 0.0),
+                'total_spectrum_utilization': cli_result.get('total_spectrum_utilization', 0.0),
+                'num_primary_occupied_channels': cli_result.get('num_primary_occupied_channels', 0),
                 'execution_time': execution_time,
                 'constraints_satisfied': True,
                 'matched_users': cli_result.get('matched_users', []),
