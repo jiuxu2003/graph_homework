@@ -18,15 +18,17 @@ class ParamsPanel:
     显示和编辑实验配置参数。
     """
 
-    def __init__(self, parent: ttk.Notebook, state: GUIState):
+    def __init__(self, parent: ttk.Notebook, state: GUIState, run_callback=None):
         """
         初始化参数面板
 
         Args:
             parent: 父容器（Notebook）
             state: 全局GUI状态
+            run_callback: 运行实验的回调函数
         """
         self.state = state
+        self.run_callback = run_callback
 
         # 创建主框架
         self.frame = ttk.Frame(parent, padding="10")
@@ -300,8 +302,8 @@ class ParamsPanel:
 
     def _on_run(self):
         """运行按钮点击"""
-        # 由主窗口处理
-        pass
+        if self.run_callback:
+            self.run_callback()
 
     def get_current_config(self) -> dict:
         """

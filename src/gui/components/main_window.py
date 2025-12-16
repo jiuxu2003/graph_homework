@@ -151,7 +151,8 @@ class MainWindow:
 
         self.params_panel = ParamsPanel(
             self.notebook,
-            state=self.state
+            state=self.state,
+            run_callback=self._on_run_experiment
         )
 
         self.results_panel = ResultsPanel(
