@@ -203,7 +203,7 @@ class MainWindow:
         """加载配置文件"""
         self.config_panel.load_config_file()
 
-    def _on_config_loaded(self, config_file: str, config: dict):
+    def _on_config_loaded(self, config_file: Optional[str], config: dict):
         """配置加载完成回调"""
         self.state.current_config_file = config_file
         self.state.current_config = config
@@ -214,7 +214,15 @@ class MainWindow:
         # 切换到参数标签页
         self.notebook.select(1)
 
-        self._set_status(f"已加载配置: {Path(config_file).name}")
+        # 设置状态信息
+        if config_file:
+            self._set_status(f"已加载配置: {Path(config_file).name}")
+        else:
+            # 快速生成的配置
+            network = config.get("network", {})
+            num_users = network.get("num_secondary_users") or network.get("num_users", 0)
+            num_channels = network.get("num_channels", 0)
+            self._set_status(f"已生成配置: {num_users}用户 × {num_channels}信道")
 
     def _on_run_experiment(self):
         """运行实验"""
