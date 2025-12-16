@@ -3,6 +3,10 @@
 .specs/
 specs/
 
+# 实验结果输出
+results/
+*.json.tmp
+
 # Python
 __pycache__/
 *.py[cod]
